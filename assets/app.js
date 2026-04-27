@@ -6,49 +6,174 @@
   const qs = (s, root=document) => root.querySelector(s);
   const qsa = (s, root=document) => [...root.querySelectorAll(s)];
   const esc = (s='') => String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  function cleanMathText(value=''){
+  const SUB_CHARS = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋'};
+  const SUP_CHARS = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','+':'⁺','-':'⁻','n':'ⁿ'};
+  const toSub = (value='') => String(value).split('').map(ch => SUB_CHARS[ch] || ch).join('');
+  const toSup = (value='') => String(value).split('').map(ch => SUP_CHARS[ch] || ch).join('');
+
+  function plainMathTransforms(value=''){
     let x = String(value || '');
-    x = x.replace(/\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
-    x = x.replace(/\dfrac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
-    x = x.replace(/\sqrt\{([^{}]+)\}/g, '√($1)');
-    x = x.replace(/\left\s*/g, '').replace(/\right\s*/g, '');
-    x = x.replace(/\cdot/g, '·').replace(/\times/g, '·');
-    x = x.replace(/\sin/g, 'sin').replace(/\cos/g, 'cos').replace(/\tan/g, 'tg').replace(/\tg/g, 'tg').replace(/\ctg/g, 'ctg');
-    x = x.replace(/\angle/g, '∠').replace(/\vec\s*([a-zA-Zа-яА-Я])/g, '$1⃗');
-    for(let i=0;i<4;i++){
-      x = x.replace(/дробь:\s*числитель:\s*([^,]+?),\s*знаменатель:\s*(.*?)\s*конец дроби/gi, '($1)/($2)');
-      x = x.replace(/корень из:\s*начало аргумента:\s*(.*?)\s*конец аргумента/gi, '√($1)');
-    }
+    x = x.replace(/&nbsp;/g, ' ').replace(/\u00a0/g, ' ');
+    x = x.replace(/\\/g, '\\');
+    x = x.replace(/\\left\s*/g, '').replace(/\\right\s*/g, '');
+    x = x.replace(/\\,/g, ' ').replace(/\\;/g, ' ');
+    x = x.replace(/\\cdot|\\times/g, '·').replace(/\\pm/g, '±');
+    x = x.replace(/\\leq/g, '≤').replace(/\\geq/g, '≥').replace(/\\neq/g, '≠').replace(/\\approx/g, '≈');
+    x = x.replace(/\\Delta/g, 'Δ').replace(/\\Phi/g, 'Φ').replace(/\\varphi|\\phi/g, 'φ');
+    x = x.replace(/\\nu/g, 'ν').replace(/\\mu/g, 'μ').replace(/\\rho/g, 'ρ').replace(/\\pi/g, 'π');
+    x = x.replace(/\\epsilon|\\varepsilon/g, 'ε').replace(/\\eta/g, 'η').replace(/\\omega/g, 'ω');
+    x = x.replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ').replace(/\\lambda/g, 'λ');
+    x = x.replace(/\\infty/g, '∞').replace(/\\in/g, '∈').replace(/\\mathbb\s*\{?\s*Z\s*\}?/g, 'ℤ');
+    x = x.replace(/\\angle/g, '∠').replace(/\\vec\s*\{?\s*([a-zA-Zа-яА-Я])\s*\}?/g, '$1⃗');
+    x = x.replace(/\\sin/g, 'sin').replace(/\\cos/g, 'cos').replace(/\\tan/g, 'tg').replace(/\\tg/g, 'tg').replace(/\\ctg/g, 'ctg');
+
     x = x.replace(/левая круглая скобка/gi, '(').replace(/правая круглая скобка/gi, ')');
     x = x.replace(/левая квадратная скобка/gi, '[').replace(/правая квадратная скобка/gi, ']');
+    x = x.replace(/левая фигурная скобка/gi, '{').replace(/правая фигурная скобка/gi, '}');
+    x = x.replace(/начало аргумента:/gi, '').replace(/конец аргумента/gi, '');
+    x = x.replace(/умножить на/gi, '·').replace(/разделить на/gi, '/').replace(/равносильно/gi, '⇔');
+    x = x.replace(/новая строка/gi, '\n').replace(/конец совокупности\.?/gi, '');
+    x = x.replace(/совокупность выражений/gi, '');
+    x = x.replace(/принадлежит\s*\\?mathbb\s*Z/gi, '∈ ℤ').replace(/принадлежит\s*Z/gi, '∈ ℤ');
+    x = x.replace(/Пи/g, 'π').replace(/пи/g, 'π');
+    x = x.replace(/котангенс/gi, 'ctg').replace(/косинус/gi, 'cos').replace(/синус/gi, 'sin').replace(/тангенс/gi, 'tg');
+    x = x.replace(/ко\s*sin/gi, 'cos').replace(/коsin/gi, 'cos');
+    x = x.replace(/градусов/gi, '°').replace(/градуса/gi, '°');
+    x = x.replace(/плюс/gi, '+').replace(/минус/gi, '−');
+    x = x.replace(/в степени\s*\(?\s*([+\-−]?\d+)\s*\)?/gi, (_,p) => toSup(p.replace('−','-')));
     x = x.replace(/в квадрате/gi, '²').replace(/в кубе/gi, '³');
-    x = x.replace(/умножить на/gi, '·').replace(/равносильно/gi, '⇔');
-    x = x.replace(/ плюс /gi, ' + ').replace(/ минус /gi, ' − ');
-    x = x.replace(/синус/gi, 'sin').replace(/косинус/gi, 'cos').replace(/тангенс/gi, 'tg').replace(/котангенс/gi, 'ctg');
-    x = x.replace(/градусов/gi, '°');
-    x = x.replace(/\s+([.,;:])/g, '$1').replace(/\s{2,}/g, ' ');
+    x = x.replace(/\^\{\s*([+\-−]?\d+|n)\s*\}/g, (_,p) => toSup(p.replace('−','-')));
+    x = x.replace(/\^\s*([+\-−]?\d+|n)/g, (_,p) => toSup(p.replace('−','-')));
+    x = x.replace(/(sin|cos|tg|ctg)\s+([⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+)/g, '$1$2');
+    x = x.replace(/=\s*=/g, '=').replace(/\s+([.,;:])/g, '$1').replace(/[ ]{2,}/g, ' ');
     return x.trim();
   }
+
+  function stripOuterParens(value=''){
+    let x = String(value || '').trim();
+    if(x.startsWith('(') && x.endsWith(')')){
+      let depth = 0, ok = true;
+      for(let i=0;i<x.length;i++){
+        if(x[i]==='(') depth++;
+        if(x[i]===')') depth--;
+        if(depth===0 && i < x.length-1){ ok = false; break; }
+      }
+      if(ok) return x.slice(1,-1).trim();
+    }
+    return x;
+  }
+  function readBraced(str, openIndex){
+    if(str[openIndex] !== '{') return null;
+    let depth = 0;
+    for(let i=openIndex;i<str.length;i++){
+      if(str[i] === '{') depth++;
+      if(str[i] === '}') depth--;
+      if(depth === 0) return {content:str.slice(openIndex+1,i), end:i+1};
+    }
+    return null;
+  }
+  function replaceLatexCommands(str, put, options){
+    let out = '', i = 0;
+    while(i < str.length){
+      const isFrac = str.startsWith('\\frac', i) || str.startsWith('\\dfrac', i) || str.startsWith('\\tfrac', i);
+      if(isFrac){
+        let j = i + (str.startsWith('\\frac', i) ? 5 : 6);
+        while(/\s/.test(str[j] || '')) j++;
+        const a = readBraced(str, j);
+        if(a){
+          j = a.end; while(/\s/.test(str[j] || '')) j++;
+          const b = readBraced(str, j);
+          if(b){ out += put(fracHTML(a.content, b.content, options)); i = b.end; continue; }
+        }
+      }
+      if(str.startsWith('\\sqrt', i)){
+        let j = i + 5; while(/\s/.test(str[j] || '')) j++;
+        const a = readBraced(str, j);
+        if(a){ out += put(sqrtHTML(a.content, options)); i = a.end; continue; }
+      }
+      out += str[i]; i++;
+    }
+    return out;
+  }
+  function fracHTML(a, b, options={}){
+    return `<span class="frac"><span class="num">${renderMathInner(stripOuterParens(a), {...options, simpleSlash:false})}</span><span class="den">${renderMathInner(stripOuterParens(b), {...options, simpleSlash:false})}</span></span>`;
+  }
+  function sqrtHTML(a, options={}){
+    return `<span class="sqrt">√<span class="radicand">${renderMathInner(stripOuterParens(a), {...options, simpleSlash:false})}</span></span>`;
+  }
+  function applySubscriptsAsHTML(x, put){
+    return x.replace(/([A-Za-zА-Яа-яΔΦφνμρπεηωαβγλ])\s*_\s*\{?\s*([A-Za-zА-Яа-я0-9]+)\s*\}?/g, (_,base,sub)=> put(`${esc(base)}<sub>${esc(sub)}</sub>`));
+  }
+  function replaceParenFractions(x, put, options){
+    for(let i=0;i<3;i++){
+      x = x.replace(/\(([^()]+)\)\s*\/\s*\(√\(([^()]+)\)\)/g, (_,a,b)=> put(fracHTML(a, `√(${b})`, options)));
+      x = x.replace(/\(([^()]+)\)\s*\/\s*\(([^()]+)\)/g, (_,a,b)=> put(fracHTML(a,b,options)));
+    }
+    return x;
+  }
+  function replaceSimpleSlashFractions(x, put, options){
+    const token = '(?:\\([^()]+\\)[A-Za-zА-Яа-я0-9₀-₉¹²³⁴⁵⁶⁷⁸⁹⁰⁻⁺ΔΦφνμρπεηωαβγλ√]*)|(?:[A-Za-zА-Яа-я0-9₀-₉¹²³⁴⁵⁶⁷⁸⁹⁰⁻⁺ΔΦφνμρπεηωαβγλ√]+)';
+    const re = new RegExp(`(${token})\\s*\\/\\s*(${token})`, 'g');
+    for(let i=0;i<2;i++) x = x.replace(re, (_,a,b)=> put(fracHTML(a,b,options)));
+    return x;
+  }
+  function renderMathInner(value='', options={}){
+    const fragments = [];
+    const put = html => `§§MATH${fragments.push(html)-1}§§`;
+    let x = String(value || '');
+    for(let i=0;i<3;i++){
+      x = replaceLatexCommands(x, put, options);
+      x = x.replace(/дробь:\s*числитель:\s*([^,]+?),\s*знаменатель:\s*([\s\S]*?)\s*конец дроби/gi, (_,a,b)=> put(fracHTML(a,b,options)));
+      x = x.replace(/корень из:\s*начало аргумента:\s*([\s\S]*?)\s*конец аргумента/gi, (_,a)=> put(sqrtHTML(a,options)));
+      x = x.replace(/корень из\s*\(?\s*([^()\n;,.]+)\s*\)?/gi, (_,a)=> put(sqrtHTML(a,options)));
+    }
+    x = plainMathTransforms(x);
+    x = replaceParenFractions(x, put, options);
+    x = x.replace(/√\(([^()]+)\)/g, (_,a)=> put(sqrtHTML(a,options)));
+    if(options.simpleSlash) x = replaceSimpleSlashFractions(x, put, options);
+    x = applySubscriptsAsHTML(x, put);
+    x = x.replace(/\n/g, '<br>');
+    let out = options.unsafe ? x : esc(x);
+    fragments.forEach((html, i) => { out = out.replaceAll(`§§MATH${i}§§`, html); });
+    return out;
+  }
+  function cleanMathText(value=''){
+    let x = String(value || '');
+    for(let i=0;i<3;i++){
+      x = x.replace(/\\d?frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+      x = x.replace(/дробь:\s*числитель:\s*([^,]+?),\s*знаменатель:\s*([\s\S]*?)\s*конец дроби/gi, '($1)/($2)');
+      x = x.replace(/\\sqrt\{([^{}]+)\}/g, '√($1)');
+      x = x.replace(/корень из:\s*начало аргумента:\s*([\s\S]*?)\s*конец аргумента/gi, '√($1)');
+    }
+    return plainMathTransforms(x);
+  }
+  function formatMathPart(part=''){
+    return renderMathInner(part, {simpleSlash:false});
+  }
+  function richTextHTML(value=''){
+    return renderMathInner(value, {simpleSlash:false});
+  }
+  function richTextUnsafe(value=''){
+    return renderMathInner(value, {simpleSlash:false, unsafe:true});
+  }
   function mathHTML(value=''){
-    let x = cleanMathText(value);
-    x = x.replace(/\^\{?2\}?/g, '²').replace(/\^\{?3\}?/g, '³').replace(/\^\{?-1\}?/g, '⁻¹');
-    return `<span class="math-render">${esc(x)}</span>`;
+    return `<span class="math-render">${renderMathInner(value, {simpleSlash:true})}</span>`;
   }
   function textHTML(value=''){
-    return esc(cleanMathText(value));
+    return richTextHTML(value);
   }
   function cleanTaskHtml(html=''){
-    let h = cleanMathText(html);
+    let h = richTextUnsafe(html);
     h = h.replace(/(<span class="math-inline">)(.*?)(<\/span>)/g, (_,a,b,c)=> a + mathHTML(b) + c);
     return h;
   }
   function normalizeFormula(value=''){
     let x = cleanMathText(value).toLowerCase();
     x = x.replace(/ν/g,'v').replace(/υ/g,'v').replace(/μ/g,'mu').replace(/ρ/g,'rho').replace(/π/g,'pi').replace(/α/g,'a').replace(/β/g,'b').replace(/γ/g,'g').replace(/λ/g,'lambda').replace(/ω/g,'omega').replace(/φ/g,'phi').replace(/ф/g,'phi').replace(/ε/g,'e').replace(/η/g,'eta').replace(/√/g,'sqrt');
-    x = x.replace(/²/g,'^2').replace(/³/g,'^3').replace(/⁻¹/g,'^-1');
+    x = x.replace(/²/g,'^2').replace(/³/g,'^3').replace(/⁻¹/g,'^-1').replace(/⁰/g,'^0').replace(/¹/g,'^1');
     x = x.replace(/[·*×]/g,'').replace(/\s+/g,'').replace(/[()]/g,'');
     x = x.replace(/=/g,'=').replace(/−/g,'-').replace(/--/g,'+');
-    x = x.replace(/fтр/g,'ftr').replace(/fупр/g,'fupr').replace(/eк/g,'ek').replace(/eп/g,'ep');
+    x = x.replace(/fтр/g,'ftr').replace(/fупр/g,'fupr').replace(/eк/g,'ek').replace(/eп/g,'ep').replace(/коsin/g,'cos');
     return x;
   }
   function symbolKeyboardHTML(){
@@ -65,6 +190,7 @@
       input.focus(); input.setSelectionRange(start + sym.length, start + sym.length);
     });
   }
+
   const app = qs('#app');
 
   const defaultState = () => ({
@@ -265,7 +391,7 @@
         ${t.diagram ? `<img class="diagram" src="/assets/diagrams/${t.diagram}" alt="схема по теме">` : ''}
         <h3>Главные идеи</h3>${ul(t.keyIdeas)}
         <h3>Основные формулы</h3>
-        ${formulas.map(f=>`<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><div class="formula-mini">${mathHTML(f.formula)}</div><b>${esc(f.title)}</b><p class="small muted">${esc(f.explanation)}</p></button>`).join('')}
+        ${formulas.map(f=>`<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><div class="formula-mini">${mathHTML(f.latex || f.formula)}</div><b>${esc(f.title)}</b><p class="small muted">${esc(f.explanation)}</p></button>`).join('')}
         <h3>Типовые задачи</h3>${ul(t.typicalTasks)}
         <h3>Частые ошибки</h3>${ul(t.commonMistakes)}
         <div class="status warn"><b>Мини-пример:</b><br>${esc(t.example)}</div>
@@ -292,7 +418,7 @@
     qsa('#topicChips .chip').forEach(ch=>ch.onclick=()=>{activeTopic=ch.dataset.topic; qsa('#topicChips .chip').forEach(x=>x.classList.remove('active')); ch.classList.add('active'); draw();});
     draw();
   }
-  function formulaCard(f){ const hard=state.hardFormulaIds.includes(f.id); return `<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><h3 class="card-title">${esc(f.title)}</h3><div class="formula-mini">${mathHTML(f.formula)}</div><div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span>${hard?'<span class="badge yellow">★ сложная</span>':''}</div><p class="small muted">${esc(f.explanation)}</p><div class="btn-row"><span class="btn soft">Открыть</span><span class="btn secondary" data-hard="${f.id}">${hard?'Убрать из сложных':'Добавить в сложные'}</span></div></button>`; }
+  function formulaCard(f){ const hard=state.hardFormulaIds.includes(f.id); return `<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><h3 class="card-title">${esc(f.title)}</h3><div class="formula-mini">${mathHTML(f.latex || f.formula)}</div><div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span>${hard?'<span class="badge yellow">★ сложная</span>':''}</div><p class="small muted">${esc(f.explanation)}</p><div class="btn-row"><span class="btn soft">Открыть</span><span class="btn secondary" data-hard="${f.id}">${hard?'Убрать из сложных':'Добавить в сложные'}</span></div></button>`; }
   async function renderFormulaDetail(subject, id){
     const content = await loadContent();
     const f = content.formulas.find(x => x.id === id);
@@ -302,7 +428,7 @@
     qs('#page').innerHTML = `
       <article class="card">
         <div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span><span class="badge">сложность ${f.difficulty}</span></div>
-        <div class="formula-box">${mathHTML(f.formula)}</div>
+        <div class="formula-box">${mathHTML(f.latex || f.formula)}</div>
         ${f.diagram ? `<img class="diagram" src="/assets/diagrams/${f.diagram}" alt="схема">` : ''}
         <h3>Что означает</h3><p>${esc(f.explanation)}</p>
         <h3>Величины</h3>${varTable(f.variables)}
@@ -365,7 +491,7 @@
             <div class="answer-panel">
               ${message ? `<div class="status ${answerClass}">${message}</div>`:''}
               <label class="small muted">Ответ</label>
-              <input class="input" id="answer" placeholder="Например: 6 Н" autocomplete="off" />
+              <input class="input" id="answer" placeholder="Введите ответ" autocomplete="off" />
               <button class="btn full" id="check">Проверить</button>
               <div class="btn-row"><button class="btn secondary" id="hint">Подсказка</button><button class="btn secondary" id="solution">Показать решение</button></div>
             </div>
@@ -521,12 +647,12 @@
   }
   function trainBase(f, inner, keyboard=false){ return `<div class="card"><div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span></div>${inner}${keyboard ? symbolKeyboardHTML() : ''}<div id="result"></div><div class="btn-row"><button class="btn" id="checkTrain">Проверить</button><button class="btn secondary" id="next">Следующая</button></div></div>`; }
   function trainWrite(f){ return trainBase(f, `<h3>Напиши формулу</h3><p>Напиши формулу: <b>${esc(f.title)}</b></p><input class="input" id="trainAnswer" placeholder="Можно писать: v=1/T, nu=1/T или ν=1/T"/>`, true); }
-  function trainChoice(f, all){ const opts=[f,...shuffle(all.filter(x=>x.id!==f.id)).slice(0,3)]; return `<div class="card"><h3>Выбери правильную формулу</h3><p>${esc(f.title)}</p>${shuffle(opts).map(o=>`<button class="option" data-pick="${o.id}">${mathHTML(o.formula)}</button>`).join('')}<button class="btn secondary full" id="next">Следующая</button></div>`; }
-  function trainExpress(f){ const ex=f.practice?.express; return trainBase(f, `<h3>Вырази величину</h3><div class="formula-box">${mathHTML(f.formula)}</div><p>Вырази: <b>${esc(ex?.symbol || 'одну из величин')}</b></p><input class="input" id="trainAnswer" placeholder="Например: m = F / a"/>`, true); }
+  function trainChoice(f, all){ const opts=[f,...shuffle(all.filter(x=>x.id!==f.id)).slice(0,3)]; return `<div class="card"><h3>Выбери правильную формулу</h3><p>${esc(f.title)}</p>${shuffle(opts).map(o=>`<button class="option" data-pick="${o.id}">${mathHTML(o.latex || o.formula)}</button>`).join('')}<button class="btn secondary full" id="next">Следующая</button></div>`; }
+  function trainExpress(f){ const ex=f.practice?.express; return trainBase(f, `<h3>Вырази величину</h3><div class="formula-box">${mathHTML(f.latex || f.formula)}</div><p>Вырази: <b>${esc(ex?.symbol || 'одну из величин')}</b></p><input class="input" id="trainAnswer" placeholder="Например: m = F / a"/>`, true); }
   function trainCalc(f){ const c=f.practice?.calc; if(!c) return `<div class="card"><div class="list-empty">Для этой формулы пока нет числовой тренировки. Выбери другой режим.</div><button class="btn full" id="next">Следующая</button></div>`; return trainBase(f, `<h3>Найди величину по данным</h3><p>${textHTML(c.given)}</p><p>Найди: <b>${esc(c.find || 'величину')}</b></p><input class="input" id="trainAnswer" placeholder="Ответ"/>`); }
   function trainMistake(f){ const w=f.practice?.wrong; return trainBase(f, `<h3>Найди ошибку</h3><p>В формуле есть ошибка:</p><div class="formula-box">${mathHTML(w?.wrongFormula || f.formula.replace('=','≈'))}</div><input class="input" id="trainAnswer" placeholder="Запиши правильную формулу"/>`, true); }
   function trainIdentify(f){ return trainBase(f, `<h3>Определи формулу по условию</h3><p>${textHTML(f.practice?.scenario || f.explanation)}</p><input class="input" id="trainAnswer" placeholder="Какая формула нужна?"/>`, true); }
-  function trainFlash(f, revealed){ return `<div class="card"><h3>Карточка</h3><p>${esc(f.title)}</p>${revealed?`<div class="formula-box">${mathHTML(f.formula)}</div><p>${esc(f.explanation)}</p><div class="btn-row"><button class="btn green" data-flash="known">Знал</button><button class="btn secondary" data-flash="unknown">Не знал</button><button class="btn" data-flash="hard">Сложно</button></div>`:`<button class="btn full" id="show">Показать ответ</button>`}<button class="btn secondary full" id="next">Следующая</button></div>`; }
+  function trainFlash(f, revealed){ return `<div class="card"><h3>Карточка</h3><p>${esc(f.title)}</p>${revealed?`<div class="formula-box">${mathHTML(f.latex || f.formula)}</div><p>${esc(f.explanation)}</p><div class="btn-row"><button class="btn green" data-flash="known">Знал</button><button class="btn secondary" data-flash="unknown">Не знал</button><button class="btn" data-flash="hard">Сложно</button></div>`:`<button class="btn full" id="show">Показать ответ</button>`}<button class="btn secondary full" id="next">Следующая</button></div>`; }
   function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
 
   async function renderSettings(subject){
