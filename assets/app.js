@@ -496,6 +496,9 @@
     qs('#page').innerHTML = `<div class="loading">Открываю задачу…</div>`;
     const task = await loadTask(subject, taskId);
     if(!task){ qs('#page').innerHTML = `<div class="list-empty">Задача не найдена</div>`; return; }
+    const index = await loadTaskIndex();
+    const taskOrder = getNextTaskOrder(index.tasks, subject, task);
+    const nextTaskMeta = taskOrder.next;
     state.lastTaskId = task.id; saveState();
     let hintsShown = 0, checked = false, message = '', answerClass='', showSolution=false;
     function draw(){
@@ -513,6 +516,7 @@
               <input class="input" id="answer" placeholder="Введите ответ" autocomplete="off" />
               <button class="btn full" id="check">Проверить</button>
               <div class="btn-row"><button class="btn secondary" id="hint">Подсказка</button><button class="btn secondary" id="solution">Показать решение</button></div>
+              ${nextTaskMeta ? `<button class="btn secondary full" id="nextTask">Следующая задача</button>` : ''}
             </div>
             <div id="hintsBox"></div><div id="solutionBox"></div>
           </aside>
@@ -528,6 +532,8 @@
       };
       qs('#hint').onclick = () => { hintsShown = Math.min(hintsShown + 1, task.hints.length || 1); drawHints(); };
       qs('#solution').onclick = () => { showSolution = true; drawSolution(); };
+      const nextBtn = qs('#nextTask');
+      if(nextBtn) nextBtn.onclick = () => go(`task/${subject}/${nextTaskMeta.id}`);
       drawHints(); if(showSolution) drawSolution();
     }
     function drawHints(){
@@ -539,6 +545,16 @@
     }
     draw();
   }
+  function getNextTaskOrder(tasks, subject, task){
+    const bySubject = tasks.filter(t => t.subject === subject);
+    const sameNumber = bySubject.filter(t => String(t.egeNumber) === String(task.egeNumber));
+    const sameTopic = bySubject.filter(t => t.topic === task.topic && t.subtopic === task.subtopic);
+    const order = sameNumber.length > 1 ? sameNumber : (sameTopic.length > 1 ? sameTopic : bySubject);
+    const pos = order.findIndex(t => t.id === task.id);
+    if(pos < 0 || order.length < 2) return { order, next:null };
+    return { order, next: order[(pos + 1) % order.length] };
+  }
+
   function attachImageFallbacks(task){
     qsa('.task-image').forEach(img => {
       img.addEventListener('error', () => {
