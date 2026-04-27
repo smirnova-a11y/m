@@ -24,6 +24,8 @@
     x = x.replace(/\\epsilon|\\varepsilon/g, 'ε').replace(/\\eta/g, 'η').replace(/\\omega/g, 'ω');
     x = x.replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ').replace(/\\lambda/g, 'λ');
     x = x.replace(/\\infty/g, '∞').replace(/\\in/g, '∈').replace(/\\mathbb\s*\{?\s*Z\s*\}?/g, 'ℤ');
+    x = x.replace(/\\mathcal\s*\{?\s*E\s*\}?/g, 'ℰ').replace(/\\mathcal\s*\{?\s*([A-Za-zА-Яа-я])\s*\}?/g, '$1');
+    x = x.replace(/\\bar\s*\{?\s*([A-Za-zА-Яа-я])\s*\}?/g, '$1̄');
     x = x.replace(/\\angle/g, '∠').replace(/\\vec\s*\{?\s*([a-zA-Zа-яА-Я])\s*\}?/g, '$1⃗');
     x = x.replace(/\\sin/g, 'sin').replace(/\\cos/g, 'cos').replace(/\\tan/g, 'tg').replace(/\\tg/g, 'tg').replace(/\\ctg/g, 'ctg');
 
@@ -45,7 +47,14 @@
     x = x.replace(/\^\{\s*([+\-−]?\d+|n)\s*\}/g, (_,p) => toSup(p.replace('−','-')));
     x = x.replace(/\^\s*([+\-−]?\d+|n)/g, (_,p) => toSup(p.replace('−','-')));
     x = x.replace(/(sin|cos|tg|ctg)\s+([⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+)/g, '$1$2');
-    x = x.replace(/=\s*=/g, '=').replace(/\s+([.,;:])/g, '$1').replace(/[ ]{2,}/g, ' ');
+    x = x.replace(/=\s*=/g, '=')
+         .replace(/\s+([.,;:])/g, '$1')
+         .replace(/([=(])\s+/g, '$1')
+         .replace(/\s+([)])/g, '$1')
+         .replace(/\s+([²³])/g, '$1')
+         .replace(/\s*([=+−·])\s*/g, ' $1 ')
+         .replace(/\s*([:;])\s*/g, '$1 ')
+         .replace(/[ ]{2,}/g, ' ');
     return x.trim();
   }
 
@@ -134,7 +143,12 @@
     x = applySubscriptsAsHTML(x, put);
     x = x.replace(/\n/g, '<br>');
     let out = options.unsafe ? x : esc(x);
-    fragments.forEach((html, i) => { out = out.replaceAll(`§§MATH${i}§§`, html); });
+    for(let pass=0; pass<4; pass++){
+      let before = out;
+      fragments.forEach((html, i) => { out = out.replaceAll(`§§MATH${i}§§`, html); });
+      if(out === before) break;
+    }
+    out = out.replace(/§§MATH\d+§§/g, '');
     return out;
   }
   function cleanMathText(value=''){
@@ -163,9 +177,14 @@
     return richTextHTML(value);
   }
   function cleanTaskHtml(html=''){
-    let h = richTextUnsafe(html);
-    h = h.replace(/(<span class="math-inline">)(.*?)(<\/span>)/g, (_,a,b,c)=> a + mathHTML(b) + c);
-    return h;
+    const raw = String(html || '');
+    // Важно: не прогоняем через математический рендер HTML-теги и атрибуты,
+    // иначе пути картинок вида ege_math/problem_images ломаются в ege<sub>math</sub>.
+    return raw.split(/(<[^>]+>)/g).map(part => {
+      if(!part) return '';
+      if(part.startsWith('<')) return part;
+      return textHTML(part);
+    }).join('');
   }
   function normalizeFormula(value=''){
     let x = cleanMathText(value).toLowerCase();
