@@ -541,7 +541,7 @@
       qs('#hintsBox').innerHTML = hints.map((h,i)=>`<div class="status warn"><b>${esc(h.title || 'Подсказка ' + (i+1))}</b><br>${textHTML(h.text || h)}</div>`).join('') || (hintsShown ? `<div class="status warn">Попробуй выписать данные и найти формулу с искомой величиной.</div>`:'');
     }
     function drawSolution(){
-      qs('#solutionBox').innerHTML = `<div class="card"><h3>Решение</h3><div class="status ok"><b>Правильный ответ:</b> ${textHTML(task.answer)} ${esc(task.answerUnit||'')}</div>${(task.solutionSteps||[]).map(st=>`<div class="solution-step"><b>${esc(st.title)}</b><br>${textHTML(st.text)}</div>`).join('') || '<p class="muted">Подробное решение пока не добавлено.</p>'}</div>`;
+      qs('#solutionBox').innerHTML = `<div class="card"><h3>Решение</h3><div class="status ok"><b>Правильный ответ:</b> ${textHTML(task.answer)} ${esc(task.answerUnit||'')}</div>${solutionHTML(task)}</div>`;
     }
     draw();
   }
@@ -553,6 +553,31 @@
     const pos = order.findIndex(t => t.id === task.id);
     if(pos < 0 || order.length < 2) return { order, next:null };
     return { order, next: order[(pos + 1) % order.length] };
+  }
+
+  function usefulSolutionText(value){
+    const raw = typeof value === 'string' ? value : (value?.text || '');
+    const cleaned = String(raw || '').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+    return cleaned.length > 6 && !/^\d+\.?$/.test(cleaned);
+  }
+  function solutionHTML(task){
+    const steps = (task.solutionSteps || []).filter(st => usefulSolutionText(st));
+    if(steps.length){
+      return steps.map((st,i)=>`<div class="solution-step"><b>${esc(st.title || 'Шаг ' + (i+1))}</b><br>${textHTML(st.text || st)}</div>`).join('');
+    }
+    if(usefulSolutionText(task.solutionText)){
+      return `<div class="solution-step">${textHTML(task.solutionText)}</div>`;
+    }
+    if(usefulSolutionText(task.solutionHtml)){
+      return `<div class="solution-step">${cleanTaskHtml(task.solutionHtml)}</div>`;
+    }
+    if(Array.isArray(task.solution) && task.solution.length){
+      return task.solution.map((x,i)=>`<div class="solution-step"><b>Шаг ${i+1}</b><br>${textHTML(x)}</div>`).join('');
+    }
+    if(usefulSolutionText(task.solution)){
+      return `<div class="solution-step">${textHTML(task.solution)}</div>`;
+    }
+    return `<div class="status warn"><b>Подробное решение пока не добавлено в базе.</b><br>Правильный ответ показан выше. Эту задачу можно позже дополнить в JSON: добавь поле <span class="kbd">solutionSteps</span>.</div>`;
   }
 
   function attachImageFallbacks(task){
