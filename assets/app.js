@@ -6,6 +6,65 @@
   const qs = (s, root=document) => root.querySelector(s);
   const qsa = (s, root=document) => [...root.querySelectorAll(s)];
   const esc = (s='') => String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  function cleanMathText(value=''){
+    let x = String(value || '');
+    x = x.replace(/\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+    x = x.replace(/\dfrac\{([^{}]+)\}\{([^{}]+)\}/g, '($1)/($2)');
+    x = x.replace(/\sqrt\{([^{}]+)\}/g, '√($1)');
+    x = x.replace(/\left\s*/g, '').replace(/\right\s*/g, '');
+    x = x.replace(/\cdot/g, '·').replace(/\times/g, '·');
+    x = x.replace(/\sin/g, 'sin').replace(/\cos/g, 'cos').replace(/\tan/g, 'tg').replace(/\tg/g, 'tg').replace(/\ctg/g, 'ctg');
+    x = x.replace(/\angle/g, '∠').replace(/\vec\s*([a-zA-Zа-яА-Я])/g, '$1⃗');
+    for(let i=0;i<4;i++){
+      x = x.replace(/дробь:\s*числитель:\s*([^,]+?),\s*знаменатель:\s*(.*?)\s*конец дроби/gi, '($1)/($2)');
+      x = x.replace(/корень из:\s*начало аргумента:\s*(.*?)\s*конец аргумента/gi, '√($1)');
+    }
+    x = x.replace(/левая круглая скобка/gi, '(').replace(/правая круглая скобка/gi, ')');
+    x = x.replace(/левая квадратная скобка/gi, '[').replace(/правая квадратная скобка/gi, ']');
+    x = x.replace(/в квадрате/gi, '²').replace(/в кубе/gi, '³');
+    x = x.replace(/умножить на/gi, '·').replace(/равносильно/gi, '⇔');
+    x = x.replace(/ плюс /gi, ' + ').replace(/ минус /gi, ' − ');
+    x = x.replace(/синус/gi, 'sin').replace(/косинус/gi, 'cos').replace(/тангенс/gi, 'tg').replace(/котангенс/gi, 'ctg');
+    x = x.replace(/градусов/gi, '°');
+    x = x.replace(/\s+([.,;:])/g, '$1').replace(/\s{2,}/g, ' ');
+    return x.trim();
+  }
+  function mathHTML(value=''){
+    let x = cleanMathText(value);
+    x = x.replace(/\^\{?2\}?/g, '²').replace(/\^\{?3\}?/g, '³').replace(/\^\{?-1\}?/g, '⁻¹');
+    return `<span class="math-render">${esc(x)}</span>`;
+  }
+  function textHTML(value=''){
+    return esc(cleanMathText(value));
+  }
+  function cleanTaskHtml(html=''){
+    let h = cleanMathText(html);
+    h = h.replace(/(<span class="math-inline">)(.*?)(<\/span>)/g, (_,a,b,c)=> a + mathHTML(b) + c);
+    return h;
+  }
+  function normalizeFormula(value=''){
+    let x = cleanMathText(value).toLowerCase();
+    x = x.replace(/ν/g,'v').replace(/υ/g,'v').replace(/μ/g,'mu').replace(/ρ/g,'rho').replace(/π/g,'pi').replace(/α/g,'a').replace(/β/g,'b').replace(/γ/g,'g').replace(/λ/g,'lambda').replace(/ω/g,'omega').replace(/φ/g,'phi').replace(/ф/g,'phi').replace(/ε/g,'e').replace(/η/g,'eta').replace(/√/g,'sqrt');
+    x = x.replace(/²/g,'^2').replace(/³/g,'^3').replace(/⁻¹/g,'^-1');
+    x = x.replace(/[·*×]/g,'').replace(/\s+/g,'').replace(/[()]/g,'');
+    x = x.replace(/=/g,'=').replace(/−/g,'-').replace(/--/g,'+');
+    x = x.replace(/fтр/g,'ftr').replace(/fупр/g,'fupr').replace(/eк/g,'ek').replace(/eп/g,'ep');
+    return x;
+  }
+  function symbolKeyboardHTML(){
+    const symbols = ['ν','Δ','μ','ρ','ε','η','π','α','β','γ','λ','ω','Φ','√','²','³','⁻¹','±','·','/','=','sin','cos','tg','ctg'];
+    return `<div class="symbol-keyboard">${symbols.map(s=>`<button type="button" class="sym" data-symbol="${esc(s)}">${esc(s)}</button>`).join('')}</div>`;
+  }
+  function attachSymbolKeyboard(){
+    qsa('[data-symbol]').forEach(b=>b.onclick=()=>{
+      const input = qs('#trainAnswer'); if(!input) return;
+      const sym = b.dataset.symbol;
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? input.value.length;
+      input.value = input.value.slice(0,start) + sym + input.value.slice(end);
+      input.focus(); input.setSelectionRange(start + sym.length, start + sym.length);
+    });
+  }
   const app = qs('#app');
 
   const defaultState = () => ({
@@ -69,12 +128,12 @@
 
   function subjectTitle(subject){ return subject === 'math' ? 'Математика' : 'Физика'; }
   function subjectIcon(subject){ return subject === 'math' ? '∑' : '⚡'; }
-  function routeParts(){ return getHash().split('/').filter(Boolean).map(decodeURIComponent); }
+  function routeParts(){ return getHash().split('?')[0].split('/').filter(Boolean).map(decodeURIComponent); }
   function setShell(title, subtitle='', back=true){
     return `
       <div class="shell">
         <header class="header">
-          ${back ? `<button class="icon-btn" data-action="back" aria-label="Назад">‹</button>` : ''}
+          ${back ? `<button class="icon-btn" data-action="home" aria-label="Домой">⌂</button><button class="icon-btn" data-action="back" aria-label="Назад">‹</button>` : ''}
           <div class="header-title"><div>${esc(title)}</div>${subtitle ? `<div class="header-subtitle">${esc(subtitle)}</div>`:''}</div>
           <button class="icon-btn" data-action="theme" aria-label="Тема">${state.theme === 'dark' ? '☀' : '☾'}</button>
         </header>
@@ -87,6 +146,7 @@
     return `<div id="installBanner" class="install-banner"><b>Установить приложение?</b><div class="small muted">После установки ЕГЭ откроется как обычное приложение на телефоне.</div><div class="btn-row"><button class="btn" data-action="install">Установить</button><button class="btn secondary" data-action="hide-install">Позже</button></div></div>`;
   }
   function attachGlobalEvents(){
+    qsa('[data-action="home"]').forEach(b => b.onclick = () => go(''));
     qsa('[data-action="back"]').forEach(b => b.onclick = () => history.length > 1 ? history.back() : go(''));
     qsa('[data-action="theme"]').forEach(b => b.onclick = () => { state.theme = state.theme === 'dark' ? 'light':'dark'; saveState(); render(); });
     qsa('[data-action="hide-install"]').forEach(b => b.onclick = () => qs('#installBanner')?.classList.remove('show'));
@@ -205,7 +265,7 @@
         ${t.diagram ? `<img class="diagram" src="/assets/diagrams/${t.diagram}" alt="схема по теме">` : ''}
         <h3>Главные идеи</h3>${ul(t.keyIdeas)}
         <h3>Основные формулы</h3>
-        ${formulas.map(f=>`<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><div class="formula-mini">${esc(f.formula)}</div><b>${esc(f.title)}</b><p class="small muted">${esc(f.explanation)}</p></button>`).join('')}
+        ${formulas.map(f=>`<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><div class="formula-mini">${mathHTML(f.formula)}</div><b>${esc(f.title)}</b><p class="small muted">${esc(f.explanation)}</p></button>`).join('')}
         <h3>Типовые задачи</h3>${ul(t.typicalTasks)}
         <h3>Частые ошибки</h3>${ul(t.commonMistakes)}
         <div class="status warn"><b>Мини-пример:</b><br>${esc(t.example)}</div>
@@ -232,7 +292,7 @@
     qsa('#topicChips .chip').forEach(ch=>ch.onclick=()=>{activeTopic=ch.dataset.topic; qsa('#topicChips .chip').forEach(x=>x.classList.remove('active')); ch.classList.add('active'); draw();});
     draw();
   }
-  function formulaCard(f){ const hard=state.hardFormulaIds.includes(f.id); return `<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><h3 class="card-title">${esc(f.title)}</h3><div class="formula-mini">${esc(f.formula)}</div><div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span>${hard?'<span class="badge yellow">★ сложная</span>':''}</div><p class="small muted">${esc(f.explanation)}</p><div class="btn-row"><span class="btn soft">Открыть</span><span class="btn secondary" data-hard="${f.id}">${hard?'Убрать из сложных':'Добавить в сложные'}</span></div></button>`; }
+  function formulaCard(f){ const hard=state.hardFormulaIds.includes(f.id); return `<button class="card" data-formula="${f.id}" style="width:100%;text-align:left"><h3 class="card-title">${esc(f.title)}</h3><div class="formula-mini">${mathHTML(f.formula)}</div><div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span>${hard?'<span class="badge yellow">★ сложная</span>':''}</div><p class="small muted">${esc(f.explanation)}</p><div class="btn-row"><span class="btn soft">Открыть</span><span class="btn secondary" data-hard="${f.id}">${hard?'Убрать из сложных':'Добавить в сложные'}</span></div></button>`; }
   async function renderFormulaDetail(subject, id){
     const content = await loadContent();
     const f = content.formulas.find(x => x.id === id);
@@ -242,13 +302,13 @@
     qs('#page').innerHTML = `
       <article class="card">
         <div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span><span class="badge">сложность ${f.difficulty}</span></div>
-        <div class="formula-box">${esc(f.formula)}</div>
+        <div class="formula-box">${mathHTML(f.formula)}</div>
         ${f.diagram ? `<img class="diagram" src="/assets/diagrams/${f.diagram}" alt="схема">` : ''}
         <h3>Что означает</h3><p>${esc(f.explanation)}</p>
         <h3>Величины</h3>${varTable(f.variables)}
         ${f.constants ? `<h3>Постоянные</h3>${varTable(f.constants.map(c=>({symbol:c.symbol,name:c.value,unit:c.unit})))}`:''}
         <div class="status warn"><b>Пример:</b><br>${esc(f.example)}</div>
-        <div class="btn-row"><button class="btn" data-go="${subject}/training?formula=${f.id}">Тренировать</button><button class="btn secondary" data-hard="${f.id}">${hard?'Убрать из сложных':'Добавить в сложные'}</button></div>
+        <div class="btn-row"><button class="btn" data-go="${subject}/training?formula=${f.id}">Тренировать</button><button class="btn secondary" data-go="${subject}/tasks?formula=${f.id}">Задачи по формуле</button><button class="btn secondary" data-hard="${f.id}">${hard?'Убрать из сложных':'Добавить в сложные'}</button></div>
       </article>`;
     qsa('[data-hard]').forEach(b=>b.onclick=()=>{toggleHard(b.dataset.hard); renderFormulaDetail(subject,id);});
     qsa('[data-go]').forEach(b=>b.onclick=()=>go(b.dataset.go));
@@ -260,11 +320,15 @@
     app.innerHTML = setShell('Задачи', 'ЕГЭ ' + subjectTitle(subject), true); attachGlobalEvents();
     qs('#page').innerHTML = `<div class="loading">Загружаю список задач…</div>`;
     const idx = await loadTaskIndex();
-    const tasks = idx.tasks.filter(t => t.subject === subject);
+    let tasks = idx.tasks.filter(t => t.subject === subject);
+    const params = new URLSearchParams((getHash().split('?')[1]||''));
+    const formulaFilter = params.get('formula');
+    let filterFormula = null;
+    if(formulaFilter){ const content = await loadContent(); filterFormula = content.formulas.find(f=>f.id===formulaFilter); if(filterFormula){ tasks = tasks.filter(t => t.topic === filterFormula.topic || t.subtopic === filterFormula.subtopic || `${t.topic} ${t.subtopic} ${t.preview}`.toLowerCase().includes(filterFormula.title.toLowerCase().split(' ')[0])); } }
     const eges = [...new Set(tasks.map(t=>t.egeNumber).filter(Boolean))].sort((a,b)=>Number(a)-Number(b));
     const topics = [...new Set(tasks.map(t=>t.topic))].sort();
     qs('#page').innerHTML = `
-      <input class="search" id="search" placeholder="Поиск по условию, теме или номеру" />
+      ${filterFormula ? `<div class="status warn"><b>Задачи по формуле:</b> ${esc(filterFormula.title)}<br><span class="small">Показаны задачи той же темы/подтемы.</span></div>` : ''}<input class="search" id="search" placeholder="Поиск по условию, теме или номеру" />
       <div class="field-row"><select class="select" id="ege"><option value="">Все номера ЕГЭ</option>${eges.map(n=>`<option value="${n}">Задание ${n}</option>`).join('')}</select><select class="select" id="topic"><option value="">Все темы</option>${topics.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('')}</select></div>
       <div class="small muted" id="count"></div><div id="list"></div><button class="btn secondary full" id="more">Показать ещё</button>`;
     let limit = 40;
@@ -294,7 +358,7 @@
         <div class="task-layout">
           <article class="card">
             <div class="card-meta"><span class="badge">ЕГЭ №${esc(task.egeNumber)}</span><span class="badge">${esc(task.topic)}</span><span class="badge">${esc(task.subtopic)}</span>${task.hasImages?'<span class="badge">рисунок</span>':''}</div>
-            <div class="task-html">${task.conditionHtml}</div>
+            <div class="task-html">${cleanTaskHtml(task.conditionHtml)}</div>
             <div id="missingImages"></div>
           </article>
           <aside>
@@ -323,10 +387,10 @@
     }
     function drawHints(){
       const hints = (task.hints||[]).slice(0,hintsShown);
-      qs('#hintsBox').innerHTML = hints.map((h,i)=>`<div class="status warn"><b>${esc(h.title || 'Подсказка ' + (i+1))}</b><br>${esc(h.text || h)}</div>`).join('') || (hintsShown ? `<div class="status warn">Попробуй выписать данные и найти формулу с искомой величиной.</div>`:'');
+      qs('#hintsBox').innerHTML = hints.map((h,i)=>`<div class="status warn"><b>${esc(h.title || 'Подсказка ' + (i+1))}</b><br>${textHTML(h.text || h)}</div>`).join('') || (hintsShown ? `<div class="status warn">Попробуй выписать данные и найти формулу с искомой величиной.</div>`:'');
     }
     function drawSolution(){
-      qs('#solutionBox').innerHTML = `<div class="card"><h3>Решение</h3><div class="status ok"><b>Правильный ответ:</b> ${esc(task.answer)} ${esc(task.answerUnit||'')}</div>${(task.given&&task.given.length)?`<h4>Дано</h4>${ul(task.given.map(String))}`:''}${(task.find&&task.find.length)?`<h4>Найти</h4>${ul(task.find.map(String))}`:''}${(task.solutionSteps||[]).map(s=>`<div class="solution-step"><b>${esc(s.title)}</b><br>${esc(s.text)}</div>`).join('') || '<p class="muted">Подробное решение пока не добавлено.</p>'}</div>`;
+      qs('#solutionBox').innerHTML = `<div class="card"><h3>Решение</h3><div class="status ok"><b>Правильный ответ:</b> ${textHTML(task.answer)} ${esc(task.answerUnit||'')}</div>${(task.solutionSteps||[]).map(st=>`<div class="solution-step"><b>${esc(st.title)}</b><br>${textHTML(st.text)}</div>`).join('') || '<p class="muted">Подробное решение пока не добавлено.</p>'}</div>`;
     }
     draw();
   }
@@ -408,19 +472,22 @@
       </div>
       <div id="trainBox"></div>`;
     qs('#scope').value=startScope;
-    let current = null, revealed=false, checked=false;
-    function pool(){
+    let current = null, revealed=false;
+    function pool(mode=qs('#mode').value){
       let p=[...formulas];
       const scope=qs('#scope').value;
       if(fixedFormula) p = p.filter(f=>f.id===fixedFormula);
       if(scope==='hard') p=p.filter(f=>state.hardFormulaIds.includes(f.id));
       if(scope.startsWith('topic:')) p=p.filter(f=>f.topic===scope.slice(6));
-      return p.length ? p : formulas.slice(0,1);
+      if(mode==='calc') p=p.filter(f=>f.practice?.calc);
+      if(mode==='express') p=p.filter(f=>f.practice?.express);
+      if(mode==='mistake') p=p.filter(f=>f.practice?.wrong);
+      return p.length ? p : formulas.filter(f=> mode!=='calc' || f.practice?.calc).slice(0,1);
     }
-    function next(){ const p=pool(); current=p[Math.floor(Math.random()*p.length)]; revealed=false; checked=false; draw(); }
+    function next(){ const p=pool(); current=p[Math.floor(Math.random()*p.length)] || formulas[0]; revealed=false; draw(); }
     function draw(){
       const mode=qs('#mode').value;
-      if(!current){ next(); return; }
+      if(!current || !pool(mode).some(f=>f.id===current.id)){ next(); return; }
       let html='';
       if(mode==='write') html = trainWrite(current);
       if(mode==='choice') html = trainChoice(current, formulas);
@@ -436,6 +503,7 @@
       const nextBtn=qs('#next'); if(nextBtn) nextBtn.onclick=next;
       const show=qs('#show'); if(show) show.onclick=()=>{revealed=true;draw();};
       const check=qs('#checkTrain'); if(check) check.onclick=()=>checkTrain(mode);
+      attachSymbolKeyboard();
       qsa('[data-pick]').forEach(b=>b.onclick=()=>{qsa('[data-pick]').forEach(x=>x.classList.remove('correct','wrong')); if(b.dataset.pick===current.id){b.classList.add('correct');}else{b.classList.add('wrong'); const good=qs(`[data-pick="${current.id}"]`); if(good) good.classList.add('correct');}});
       qsa('[data-flash]').forEach(b=>b.onclick=()=>{ if(b.dataset.flash==='hard') toggleHard(current.id); next(); });
     }
@@ -445,20 +513,20 @@
       if(mode==='express') correct=current.practice?.express?.answer || current.formula;
       if(mode==='calc') correct=current.practice?.calc?.answer || '';
       if(mode==='mistake') correct=current.practice?.wrong?.correct || current.formula;
-      const variants = current.practice?.answers || [current.formula];
-      const ok = mode==='calc' ? checkAnswer(val, correct, current.practice?.calc?.unit||'', [correct]) : variants.map(normalizeAnswer).includes(normalizeAnswer(val)) || normalizeAnswer(val)===normalizeAnswer(correct);
-      const box=qs('#result'); if(box) box.innerHTML = ok ? `<div class="status ok">Верно ✅</div>` : `<div class="status bad">Пока неверно. Правильно: <b>${esc(correct)}</b></div>`;
+      const variants = [current.formula, correct, ...(current.practice?.answers || [])];
+      const ok = mode==='calc' ? checkAnswer(val, correct, current.practice?.calc?.unit||'', [correct]) : variants.some(v=>normalizeFormula(v)===normalizeFormula(val));
+      const box=qs('#result'); if(box) box.innerHTML = ok ? `<div class="status ok">Верно ✅</div>` : `<div class="status bad">Пока неверно. Правильно: <b>${mathHTML(correct)}</b></div>`;
     }
     qs('#mode').onchange=next; qs('#scope').onchange=next; next();
   }
-  function trainBase(f, inner){ return `<div class="card"><div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span></div>${inner}<div id="result"></div><div class="btn-row"><button class="btn" id="checkTrain">Проверить</button><button class="btn secondary" id="next">Следующая</button></div></div>`; }
-  function trainWrite(f){ return trainBase(f, `<h3>Напиши формулу</h3><p>Напиши формулу: <b>${esc(f.title)}</b></p><input class="input" id="trainAnswer" placeholder="Введи формулу"/>`); }
-  function trainChoice(f, all){ const opts=[f,...shuffle(all.filter(x=>x.id!==f.id)).slice(0,3)]; return `<div class="card"><h3>Выбери правильную формулу</h3><p>${esc(f.title)}</p>${shuffle(opts).map(o=>`<button class="option" data-pick="${o.id}">${esc(o.formula)}</button>`).join('')}<button class="btn secondary full" id="next">Следующая</button></div>`; }
-  function trainExpress(f){ const ex=f.practice?.express; return trainBase(f, `<h3>Вырази величину</h3><div class="formula-box">${esc(f.formula)}</div><p>Вырази: <b>${esc(ex?.symbol || 'одну из величин')}</b></p><input class="input" id="trainAnswer" placeholder="Например: m = F / a"/>`); }
-  function trainCalc(f){ const c=f.practice?.calc; return trainBase(f, `<h3>Найди величину по данным</h3><p>${esc(c?.given || f.example)}</p><p>Найди: <b>${esc(c?.find || 'ответ')}</b></p><input class="input" id="trainAnswer" placeholder="Ответ"/>`); }
-  function trainMistake(f){ const w=f.practice?.wrong; return trainBase(f, `<h3>Найди ошибку</h3><p>В формуле есть ошибка:</p><div class="formula-box">${esc(w?.wrongFormula || f.formula.replace('=','≈'))}</div><input class="input" id="trainAnswer" placeholder="Запиши правильную формулу"/>`); }
-  function trainIdentify(f){ return trainBase(f, `<h3>Определи формулу по условию</h3><p>${esc(f.practice?.scenario || f.explanation)}</p><input class="input" id="trainAnswer" placeholder="Какая формула нужна?"/>`); }
-  function trainFlash(f, revealed){ return `<div class="card"><h3>Карточка</h3><p>${esc(f.title)}</p>${revealed?`<div class="formula-box">${esc(f.formula)}</div><p>${esc(f.explanation)}</p><div class="btn-row"><button class="btn green" data-flash="known">Знал</button><button class="btn secondary" data-flash="unknown">Не знал</button><button class="btn" data-flash="hard">Сложно</button></div>`:`<button class="btn full" id="show">Показать ответ</button>`}<button class="btn secondary full" id="next">Следующая</button></div>`; }
+  function trainBase(f, inner, keyboard=false){ return `<div class="card"><div class="card-meta"><span class="badge">${esc(f.topic)}</span><span class="badge">${esc(f.subtopic)}</span></div>${inner}${keyboard ? symbolKeyboardHTML() : ''}<div id="result"></div><div class="btn-row"><button class="btn" id="checkTrain">Проверить</button><button class="btn secondary" id="next">Следующая</button></div></div>`; }
+  function trainWrite(f){ return trainBase(f, `<h3>Напиши формулу</h3><p>Напиши формулу: <b>${esc(f.title)}</b></p><input class="input" id="trainAnswer" placeholder="Можно писать: v=1/T, nu=1/T или ν=1/T"/>`, true); }
+  function trainChoice(f, all){ const opts=[f,...shuffle(all.filter(x=>x.id!==f.id)).slice(0,3)]; return `<div class="card"><h3>Выбери правильную формулу</h3><p>${esc(f.title)}</p>${shuffle(opts).map(o=>`<button class="option" data-pick="${o.id}">${mathHTML(o.formula)}</button>`).join('')}<button class="btn secondary full" id="next">Следующая</button></div>`; }
+  function trainExpress(f){ const ex=f.practice?.express; return trainBase(f, `<h3>Вырази величину</h3><div class="formula-box">${mathHTML(f.formula)}</div><p>Вырази: <b>${esc(ex?.symbol || 'одну из величин')}</b></p><input class="input" id="trainAnswer" placeholder="Например: m = F / a"/>`, true); }
+  function trainCalc(f){ const c=f.practice?.calc; if(!c) return `<div class="card"><div class="list-empty">Для этой формулы пока нет числовой тренировки. Выбери другой режим.</div><button class="btn full" id="next">Следующая</button></div>`; return trainBase(f, `<h3>Найди величину по данным</h3><p>${textHTML(c.given)}</p><p>Найди: <b>${esc(c.find || 'величину')}</b></p><input class="input" id="trainAnswer" placeholder="Ответ"/>`); }
+  function trainMistake(f){ const w=f.practice?.wrong; return trainBase(f, `<h3>Найди ошибку</h3><p>В формуле есть ошибка:</p><div class="formula-box">${mathHTML(w?.wrongFormula || f.formula.replace('=','≈'))}</div><input class="input" id="trainAnswer" placeholder="Запиши правильную формулу"/>`, true); }
+  function trainIdentify(f){ return trainBase(f, `<h3>Определи формулу по условию</h3><p>${textHTML(f.practice?.scenario || f.explanation)}</p><input class="input" id="trainAnswer" placeholder="Какая формула нужна?"/>`, true); }
+  function trainFlash(f, revealed){ return `<div class="card"><h3>Карточка</h3><p>${esc(f.title)}</p>${revealed?`<div class="formula-box">${mathHTML(f.formula)}</div><p>${esc(f.explanation)}</p><div class="btn-row"><button class="btn green" data-flash="known">Знал</button><button class="btn secondary" data-flash="unknown">Не знал</button><button class="btn" data-flash="hard">Сложно</button></div>`:`<button class="btn full" id="show">Показать ответ</button>`}<button class="btn secondary full" id="next">Следующая</button></div>`; }
   function shuffle(a){ return a.map(x=>[Math.random(),x]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
 
   async function renderSettings(subject){
