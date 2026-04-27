@@ -1,5 +1,5 @@
-const SHELL_CACHE = 'ege-shell-v1.0.0';
-const DYNAMIC_CACHE = 'ege-dynamic-v1.0.0';
+const SHELL_CACHE = 'ege-shell-v4.0.0';
+const DYNAMIC_CACHE = 'ege-dynamic-v4.0.0';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -10,17 +10,36 @@ const APP_SHELL = [
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/apple-touch-icon.png',
-  '/assets/diagrams/friction_incline.svg',
-  '/assets/diagrams/work_angle.svg',
+  '/assets/diagrams/ampere.svg',
   '/assets/diagrams/coulomb.svg',
-  '/assets/diagrams/series.svg',
-  '/assets/diagrams/parallel.svg',
-  '/assets/diagrams/lens_convex.svg',
-  '/assets/diagrams/lens_concave.svg',
   '/assets/diagrams/diffraction.svg',
+  '/assets/diagrams/friction_incline.svg',
+  '/assets/diagrams/lens_concave.svg',
+  '/assets/diagrams/lens_convex.svg',
+  '/assets/diagrams/math/circle_elements.svg',
+  '/assets/diagrams/math/combinatorics.svg',
+  '/assets/diagrams/math/cube.svg',
+  '/assets/diagrams/math/derivative_tangent.svg',
+  '/assets/diagrams/math/logarithm.svg',
+  '/assets/diagrams/math/number_theory.svg',
+  '/assets/diagrams/math/parallelogram.svg',
+  '/assets/diagrams/math/powers_roots.svg',
+  '/assets/diagrams/math/probability_scheme.svg',
+  '/assets/diagrams/math/progression.svg',
+  '/assets/diagrams/math/pyramid.svg',
+  '/assets/diagrams/math/quadratic_parabola.svg',
+  '/assets/diagrams/math/rhombus.svg',
+  '/assets/diagrams/math/right_triangle.svg',
+  '/assets/diagrams/math/solids.svg',
+  '/assets/diagrams/math/trapezoid.svg',
+  '/assets/diagrams/math/triangle_area.svg',
+  '/assets/diagrams/math/unit_circle.svg',
+  '/assets/diagrams/math/vectors_plane.svg',
+  '/assets/diagrams/parallel.svg',
   '/assets/diagrams/pendulum.svg',
+  '/assets/diagrams/series.svg',
   '/assets/diagrams/spring.svg',
-  '/assets/diagrams/ampere.svg'
+  '/assets/diagrams/work_angle.svg'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
