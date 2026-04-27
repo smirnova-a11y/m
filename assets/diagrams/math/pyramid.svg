@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="420" height="240">
-<rect width="420" height="240" rx="24" fill="#f8fbff"/>
-<polygon points="110,165 280,165 330,130 160,130" fill="#dbeafe" stroke="#2f6bff" stroke-width="4"/>
-<path d="M210 55 L110 165 M210 55 L280 165 M210 55 L330 130 M210 55 L160 130" fill="none" stroke="#2f6bff" stroke-width="4"/>
-<line x1="210" y1="55" x2="210" y2="145" stroke="#f59e0b" stroke-width="4" stroke-dasharray="8 6"/>
-<text x="220" y="105" font-size="18" fill="#b56a00">h</text>
-<text x="60" y="212" font-size="18" fill="#567">V = 1/3 · Sосн · h</text>
-</svg>

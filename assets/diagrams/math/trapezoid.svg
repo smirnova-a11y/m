@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="420" height="240">
-<rect width="420" height="240" rx="24" fill="#f8fbff"/>
-<polygon points="100,170 320,170 270,90 150,90" fill="#eef4ff" stroke="#2f6bff" stroke-width="5"/>
-<line x1="210" y1="90" x2="210" y2="170" stroke="#f59e0b" stroke-width="4" stroke-dasharray="8 6"/>
-<text x="216" y="136" font-size="18" fill="#b56a00">h</text>
-<text x="196" y="188" font-size="18" fill="#234">a</text>
-<text x="198" y="82" font-size="18" fill="#234">b</text>
-<text x="70" y="214" font-size="18" fill="#567">S = (a + b)h / 2</text>
-</svg>

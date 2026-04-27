@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="420" height="240">
-<rect width="420" height="240" rx="24" fill="#f8fbff"/>
-<circle cx="90" cy="86" r="28" fill="#eef4ff" stroke="#2f6bff" stroke-width="4"/><circle cx="160" cy="86" r="28" fill="#eef4ff" stroke="#2f6bff" stroke-width="4"/><circle cx="230" cy="86" r="28" fill="#eef4ff" stroke="#2f6bff" stroke-width="4"/>
-<text x="82" y="93" font-size="20" fill="#234">A</text><text x="153" y="93" font-size="20" fill="#234">B</text><text x="223" y="93" font-size="20" fill="#234">C</text>
-<path d="M90 125 C120 160 190 160 230 125" fill="none" stroke="#f59e0b" stroke-width="5"/>
-<text x="70" y="174" font-size="20" fill="#1e3a8a">Pₙ = n!</text>
-<text x="70" y="206" font-size="20" fill="#1e3a8a">Cₙᵏ = n!/(k!(n-k)!)</text>
-</svg>
