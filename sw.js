@@ -1,12 +1,12 @@
-const SHELL_CACHE = 'ege-shell-v4.0.0';
-const DYNAMIC_CACHE = 'ege-dynamic-v4.0.0';
+const SHELL_CACHE = 'ege-shell-v6.0.0';
+const DYNAMIC_CACHE = 'ege-dynamic-v6.0.0';
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/assets/app.css',
-  '/assets/app.js',
+  '/assets/app.css?v=6.0.0',
+  '/assets/app.js?v=6.0.0',
   '/manifest.json',
-  '/data/content.json',
+  '/data/content.json?v=6.0.0',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/icons/apple-touch-icon.png',
